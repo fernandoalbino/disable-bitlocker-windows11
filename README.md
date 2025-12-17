@@ -1,6 +1,6 @@
 # BitLocker Control – Disable & Enable (Windows 10 / 11)
 
-This repository provides **two complementary PowerShell scripts** to **disable** or **re-enable** BitLocker / Device Encryption in a **controlled, predictable and documented way**.
+This repository provides **two complementary PowerShell scripts** to explicitly **disable** or **enable** BitLocker / Device Encryption.
 
 It is suitable for:
 - Windows 10 and Windows 11
@@ -11,89 +11,46 @@ TPM **can remain enabled**, keeping Windows 11 fully compliant.
 
 ---
 
-## Overview
+## Scripts overview
 
 | Script | Purpose |
 |------|--------|
 | `disable-bitlocker-windows11.ps1` | Permanently disables BitLocker and Device Encryption |
-| `enable-bitlocker-windows11.ps1` | Restores BitLocker and re-enables disk encryption |
-
-Both scripts are:
-- Idempotent (safe to run more than once)
-- Designed for administrative use
-- Explicit about what they change
+| `enable-bitlocker-windows11.ps1` | Restores BitLocker and enables disk encryption |
 
 ---
 
-## Why this project exists
+## ENABLE – BitLocker with automatic Recovery Key export
 
-Windows may automatically enable disk encryption when it detects:
-- TPM
-- Secure Boot
-- Modern hardware
-- VM migration or hardware changes
+### What happens when you enable BitLocker
 
-This behavior can cause:
-- Unexpected recovery key prompts
-- Boot interruptions
-- Problems after VM migration
-- Operational friction in labs, homelabs and testing environments
+When the enable script is executed:
 
-This project gives **explicit control** over BitLocker behavior.
+- BitLocker is activated on drive `C:`
+- Encryption starts **in background**
+- A **new Recovery Key is generated**
+- The Recovery Key is **automatically exported to disk**
+- TPM is used automatically when available
 
----
+### Automatic Recovery Key export
 
-## DISABLE BitLocker / Device Encryption
+For safety and auditability, the script automatically saves the recovery key to:
 
-### What the disable script does
-
-✔ Turns off active disk encryption (non-destructive)  
-✔ Removes all BitLocker protectors  
-✔ Blocks automatic Device Encryption via registry  
-✔ Prevents key regeneration after hardware changes  
-✔ Disables BitLocker-related services  
-✔ Removes the BitLocker Windows feature (when available)  
-
-### What it does NOT do
-
-✖ Does NOT remove or disable TPM  
-✖ Does NOT break Windows 11 requirements  
-✖ Does NOT delete data  
-
-### Quick run (recommended)
-
-Run **PowerShell as Administrator**:
-
-```powershell
-irm https://raw.githubusercontent.com/fernandoalbino/disable-bitlocker-windows11/main/disable-bitlocker-windows11.ps1 | iex
+```
+C:\ProgramData\BitLocker-Recovery\recovery-key-YYYY-MM-DD_HH-MM-SS.txt
 ```
 
-### When to use
+This file contains:
+- Volume information
+- Key ID (GUID)
+- Numerical Recovery Password
 
-- Lab or homelab environments
-- Virtual machines that migrate between hosts
-- Systems where disk encryption is not required
-- Testing, benchmarking or automation scenarios
+⚠️ **Important**:
+- Copy this file to a secure location
+- Do NOT rely solely on the VM disk
+- Treat this file as a sensitive secret
 
----
-
-## ENABLE / RESTORE BitLocker
-
-### What the enable script does
-
-✔ Re-enables BitLocker services  
-✔ Removes registry blocks created by the disable script  
-✔ Reinstalls the BitLocker Windows feature  
-✔ Enables BitLocker on system drive (C:)  
-✔ Uses TPM automatically if available  
-
-### Important notes
-
-- Encryption happens **in background**
-- A **new recovery key will be generated**
-- Backup the recovery key securely
-
-### Quick run (recommended)
+### Quick run
 
 Run **PowerShell as Administrator**:
 
@@ -101,55 +58,56 @@ Run **PowerShell as Administrator**:
 irm https://raw.githubusercontent.com/fernandoalbino/enable-bitlocker-windows11/main/enable-bitlocker-windows11.ps1 | iex
 ```
 
-### When to use
+---
 
-- Restore security after testing
-- Compliance or data-at-rest requirements
-- Preparing a system for production use
-- Re-enabling encryption on physical laptops
+## DISABLE – BitLocker / Device Encryption
+
+### What the disable script does
+
+✔ Turns off active disk encryption  
+✔ Removes all BitLocker protectors  
+✔ Blocks automatic Device Encryption  
+✔ Prevents reactivation after hardware changes  
+
+### Quick run
+
+```powershell
+irm https://raw.githubusercontent.com/fernandoalbino/disable-bitlocker-windows11/main/disable-bitlocker-windows11.ps1 | iex
+```
 
 ---
 
-## Verification (both cases)
+## Verification
 
-After reboot, verify BitLocker status:
+Check BitLocker status at any time:
 
 ```powershell
 manage-bde -status
 ```
 
-Expected states:
-
-- **Disabled**:
-  - Percentage Encrypted: `0%`
-  - Protection Status: `Off`
-  - No key protectors
-
-- **Enabled**:
-  - Percentage Encrypted: progressing to `100%`
-  - Protection Status: `On`
-
 ---
 
-## Windows 11 notes
+## Test-safe workflow (recommended)
 
-- TPM **can remain enabled**
-- Secure Boot is optional
-- Works on Windows Home (Device Encryption) and Pro / Enterprise
-- Safe for VM migration scenarios
+For lab or VM testing:
+
+```powershell
+# Enable (generates + exports key)
+enable-bitlocker-windows11.ps1
+
+# Disable immediately (no reboot)
+disable-bitlocker-windows11.ps1
+```
+
+No system lockout will occur if no reboot happens between steps.
 
 ---
 
 ## Security considerations
 
-Disabling BitLocker removes data-at-rest protection.
-
-If your environment requires:
-- Regulatory compliance
-- Protection against device loss or theft
-- Strong security guarantees
-
-**Do not use the disable script.**
+- Enabling BitLocker protects data at rest
+- Disabling BitLocker removes that protection
+- Always store Recovery Keys securely
 
 ---
 
