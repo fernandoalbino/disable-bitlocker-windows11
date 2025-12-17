@@ -1,45 +1,86 @@
 # BitLocker Control (Unified) – CLI/TUI + GUI (Windows 10 / 11)
 
-Este repositório entrega **controle explícito** do BitLocker / Device Encryption com foco em **VMs (migração)** e também em **PC físico**.
+This repository provides **explicit and reversible control** over **BitLocker / Device Encryption**, designed for both **virtual machines (migration-safe)** and **physical PCs**.
 
-Inclui:
-- **Script unificado CLI/TUI** (menu interativo no terminal)
-- **GUI real (WinForms)** no estilo “painel pragmático”
-- **Detecção automática do drive do sistema**
-- **Logs em arquivo**
-- **Confirmações de segurança**
-- **Export automático da Recovery Key** ao habilitar
+It includes:
+- **Unified CLI/TUI script** (interactive terminal menu + automation mode)
+- **Real GUI (WinForms)** in a pragmatic “Titus-style” control panel
+- **Automatic system drive detection**
+- **File-based logging**
+- **Safety confirmations**
+- **Automatic Recovery Key export when enabling BitLocker**
 
-## Arquivos
-
-- `bitlocker-control.ps1`  
-  CLI/TUI (menu no terminal) + modo automação por parâmetro (`-Mode`).
-
-- `bitlocker-control-gui.ps1`  
-  GUI WinForms (botões Enable/Disable/Test/Status + console/log).
-
-## Requisitos
-
-- Windows 10 ou Windows 11
-- PowerShell
-- Executar como **Administrador**
-- `manage-bde` disponível (Windows)
-
-> TPM pode permanecer habilitado (Windows 11 compatível).
+TPM **can remain enabled**, keeping Windows 11 fully compliant.
 
 ---
 
-## Uso rápido (CLI/TUI)
+## Files
 
-Abra **PowerShell como Administrador** e rode:
+- `bitlocker-control.ps1`  
+  Unified script with:
+  - Interactive menu (colors + ASCII icons)
+  - CLI automation mode (`-Mode`)
+  - Logging and confirmations
+
+- `bitlocker-control-gui.ps1`  
+  Real WinForms GUI with:
+  - Enable / Disable / Test / Status buttons
+  - Embedded log console
+  - Background execution (non-blocking UI)
+
+---
+
+## Requirements
+
+- Windows 10 or Windows 11
+- PowerShell
+- Must be run as **Administrator**
+- `manage-bde` available (default on Windows)
+
+---
+
+## Run without downloading (recommended)
+
+### CLI/TUI (interactive menu) – one-liner
+
+Run **PowerShell as Administrator**:
+
+```powershell
+irm https://raw.githubusercontent.com/fernandoalbino/bitlocker-control/main/bitlocker-control.ps1 | iex
+```
+
+### GUI (WinForms) – one-liner
+
+Run **PowerShell as Administrator**:
+
+```powershell
+irm https://raw.githubusercontent.com/fernandoalbino/bitlocker-control/main/bitlocker-control-gui.ps1 | iex
+```
+
+> Note: these one-liners execute the scripts directly in memory (no files written to disk).
+
+### If your environment blocks script execution
+
+If you get an ExecutionPolicy-related error, use a temporary bypass in the current session:
+
+```powershell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+irm https://raw.githubusercontent.com/fernandoalbino/bitlocker-control/main/bitlocker-control.ps1 | iex
+```
+
+---
+
+## Quick start – local CLI / TUI
+
+Open **PowerShell as Administrator** and run:
 
 ```powershell
 .\bitlocker-control.ps1
 ```
 
-Isso abre o menu interativo com cores e ícones ASCII.
+This opens the interactive terminal menu.
 
-### Modo automação (sem menu)
+### Automation mode (no menu)
 
 ```powershell
 .\bitlocker-control.ps1 -Mode status
@@ -48,9 +89,9 @@ Isso abre o menu interativo com cores e ícones ASCII.
 .\bitlocker-control.ps1 -Mode test
 ```
 
-### Forçar sem confirmação
+### Force mode (skip confirmations)
 
-Para automação (CI/remote), você pode suprimir confirmações:
+For automation / CI / remote execution:
 
 ```powershell
 .\bitlocker-control.ps1 -Mode disable -Force
@@ -58,121 +99,135 @@ Para automação (CI/remote), você pode suprimir confirmações:
 
 ---
 
-## Uso (GUI WinForms)
+## GUI usage (local WinForms)
 
-Abra **PowerShell como Administrador** e execute:
+Run **PowerShell as Administrator**:
 
 ```powershell
 .\bitlocker-control-gui.ps1
 ```
 
-A interface oferece:
+The GUI provides:
 - **Enable (Export Key)**
-- **Disable (Prevent Auto)**
-- **Test (Enable -> Disable)**
+- **Disable (Prevent Auto-Encryption)**
+- **Test (Enable → Disable)**
 - **Status**
 - **Open Logs**
 
-A GUI executa as ações em background e escreve no console interno e no log em arquivo.
+All actions run asynchronously and write both to the GUI console and log files.
 
 ---
 
-## Drive do sistema (detecção automática)
+## Automatic system drive detection
 
-Os scripts detectam automaticamente o drive do sistema via:
+The scripts automatically detect the OS drive using:
 
-- `Win32_OperatingSystem.SystemDrive` (preferencial)
-- fallback: `$env:SystemDrive`
-- fallback final: `C:`
+1. `Win32_OperatingSystem.SystemDrive` (preferred)
+2. `$env:SystemDrive`
+3. Fallback to `C:`
 
-Você não precisa informar manualmente o drive.
+No manual drive selection is required.
 
 ---
 
-## Logs (arquivo)
+## Logging
 
-Cada execução gera um log em:
+Each execution generates a dedicated log file:
 
 ```
 C:\ProgramData\BitLocker-Control\logs\
 ```
 
-Exemplos:
+Examples:
 - `bitlocker-control-YYYY-MM-DD_HH-MM-SS.log`
 - `bitlocker-control-gui-YYYY-MM-DD_HH-MM-SS.log`
 
 ---
 
-## Recovery Key (chave de recuperação)
+## Recovery Key handling
 
-### O que acontece ao habilitar
+### What happens when enabling BitLocker
 
-Ao rodar **Enable**, o Windows gera uma **NOVA Recovery Key** (numérica).
+When **Enable** is executed:
 
-### Export automático
+- BitLocker is enabled on the system drive
+- Encryption starts **in background**
+- A **new Recovery Key** is generated
+- The Recovery Key is **automatically exported to disk**
+- TPM is used automatically when available
 
-O script exporta automaticamente a chave para:
+### Automatic export location
 
 ```
 C:\ProgramData\BitLocker-Recovery\recovery-key-YYYY-MM-DD_HH-MM-SS.txt
 ```
 
-Esse arquivo contém:
-- Informações do volume
+This file contains:
+- Volume information
 - Key ID (GUID)
-- Recovery Password (numérica)
+- Numerical Recovery Password
 
-### Boas práticas
+### Best practices
 
-- Trate o arquivo como **segredo sensível**
-- Copie para um local seguro (vault / password manager / storage fora da VM)
-- Em VMs, **não confie apenas** no disco da VM
+- Treat the recovery key file as a **sensitive secret**
+- Copy it to a secure external location (vault / password manager)
+- In VMs, **do not rely solely on the VM disk**
 
 ---
 
-## Fluxo de teste seguro (VM)
+## Safe testing workflow (VMs)
 
-Se você quer apenas validar e não “travar” a VM:
+If you want to test without risking lockout:
 
-- Use **Test (Enable -> Disable)**
-- **Não reinicie** entre enable e disable
+- Use **Test (Enable → Disable)**
+- **Do NOT reboot** between enable and disable
 
-No CLI:
+CLI example:
 
 ```powershell
 .\bitlocker-control.ps1 -Mode test
 ```
 
+This validates the full workflow without leaving the VM encrypted.
+
 ---
 
-## Verificação do estado
+## Status verification
 
-Em qualquer momento:
+At any time:
 
 ```powershell
 manage-bde -status
 ```
 
-Estados esperados:
+Expected states:
 
-- **Disabled**: `Protection Status: Off` e criptografia indo para `0%`
-- **Enabled**: `Protection Status: On` e criptografia progredindo para `100%`
+- **Disabled**
+  - Protection Status: `Off`
+  - Encryption returning to `0%`
 
----
-
-## Considerações de segurança
-
-- **Enable** aumenta proteção de dados em repouso (recomendado para notebooks e produção).
-- **Disable** remove proteção de dados em repouso (adequado para laboratório/VMs e ambientes onde isso atrapalha operação).
-
-Se você precisa de compliance/segurança formal, não utilize o modo disable.
+- **Enabled**
+  - Protection Status: `On`
+  - Encryption progressing to `100%`
 
 ---
 
-## Aviso
+## Security considerations
 
-Uso por sua conta e risco. Nenhuma garantia é oferecida.
+- **Enable** provides data-at-rest protection (recommended for laptops and production systems)
+- **Disable** removes data-at-rest protection (appropriate for labs, test VMs, and environments where encryption interferes with operations)
 
-## Licença
+If you require regulatory compliance or strong security guarantees, **do not use the disable functionality**.
+
+---
+
+## Disclaimer
+
+This software is provided **as is**, without warranty of any kind.
+Use at your own risk.
+
+---
+
+## License
 
 MIT
