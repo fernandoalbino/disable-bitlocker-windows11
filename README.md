@@ -1,145 +1,90 @@
-# Disable BitLocker / Device Encryption – Windows 11 (Physical PC & VM)
+# Enable / Restore BitLocker – Windows 10 & 11
 
-This repository provides a **safe, reproducible and permanent** way to disable:
+This repository provides a **safe and controlled** way to **restore**:
 
 - BitLocker
 - Device Encryption
-- Automatic key regeneration
+- TPM-based key protection
 
-It is designed for:
-- Windows 11 (Home / Pro / Enterprise)
-- Windows 10
-- Physical PCs
-- Virtual Machines (any hypervisor)
-
-TPM **can remain enabled**, keeping Windows 11 fully compliant.
+It is intended to **undo** the effects of the
+[`disable-bitlocker-windows11`](https://github.com/fernandoalbino/disable-bitlocker-windows11) project.
 
 ---
 
-## Why this exists
+## When should you use this
 
-Windows may automatically enable disk encryption when it detects:
-- TPM
-- Secure Boot
-- Modern hardware or VM migration
+Use this script if you want to:
 
-This behavior can cause:
-- Unexpected recovery key prompts
-- Boot interruptions
-- Problems after hardware changes or VM migrations
-- Operational issues in labs, homelabs and enterprise environments
-
-This script **permanently disables** that behavior while keeping the system stable.
+- Re-enable disk encryption
+- Restore compliance or security requirements
+- Protect data at rest again
+- Re-enable BitLocker after testing or VM migration
 
 ---
 
 ## What the script does
 
-✔ Turns off active disk encryption (non-destructive)  
-✔ Removes all BitLocker protectors  
-✔ Blocks automatic Device Encryption via registry  
-✔ Prevents key regeneration after hardware changes  
-✔ Disables BitLocker-related services  
-✔ Removes the BitLocker Windows feature (when available)  
-✔ Works on **physical PCs and virtual machines**  
-
----
-
-## What the script does NOT do
-
-✖ Does NOT remove or disable TPM  
-✖ Does NOT break Windows 11 requirements  
-✖ Does NOT delete data  
-✖ Does NOT affect Windows Update  
-✖ Does NOT weaken system integrity beyond disabling disk encryption  
+✔ Re-enables BitLocker services  
+✔ Removes registry blocks that prevented encryption  
+✔ Reinstalls BitLocker Windows feature  
+✔ Enables BitLocker on system drive (C:)  
+✔ Uses TPM automatically if available  
 
 ---
 
 ## Requirements
 
 - Windows 10 or Windows 11
-- PowerShell
 - Administrator privileges
+- TPM recommended (required for silent unlock)
 
 ---
 
-## Quick run (recommended)
+## Quick run (PowerShell)
 
-Run **PowerShell as Administrator** and execute:
+Run **PowerShell as Administrator**:
 
 ```powershell
-irm https://raw.githubusercontent.com/fernandoalbino/disable-bitlocker-windows11/main/disable-bitlocker-windows11.ps1 | iex
+irm https://raw.githubusercontent.com/fernandoalbino/enable-bitlocker-windows11/main/enable-bitlocker-windows11.ps1 | iex
 ```
-
-> The script is executed directly in memory.  
-> No files are written to disk.
 
 ---
 
 ## Manual usage
 
-1. Download the script:
-   ```powershell
-   disable-bitlocker-windows11.ps1
-   ```
+```powershell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+.\enable-bitlocker-windows11.ps1
+```
 
-2. Open **PowerShell as Administrator**
-
-3. Allow execution (temporary):
-   ```powershell
-   Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
-   ```
-
-4. Run:
-   ```powershell
-   .\disable-bitlocker-windows11.ps1
-   ```
-
-5. Reboot the system
+Reboot may be required.
 
 ---
 
 ## Verification
 
-After reboot, confirm BitLocker is fully disabled:
-
 ```powershell
 manage-bde -status
 ```
 
-Expected output:
-- Percentage Encrypted: `0%`
-- Protection Status: `Off`
-- No key protectors present
+Expected:
+- Percentage Encrypted: progressing to 100%
+- Protection Status: On
 
 ---
 
-## Windows 11 notes
+## Notes
 
-- TPM **can remain enabled**
-- Secure Boot is optional
-- Works on Windows Home (Device Encryption) and Pro/Enterprise editions
-- Safe for VM migration scenarios
-
----
-
-## Security considerations
-
-This project intentionally disables disk encryption.
-
-If your environment requires:
-- Data-at-rest protection
-- Regulatory compliance
-- Lost-device threat mitigation
-
-**Do not use this script.**
+- Encryption happens in background
+- Recovery key will be generated
+- Backup your recovery key securely
 
 ---
 
 ## Disclaimer
 
-This software is provided "as is", without warranty of any kind.
-Use at your own risk.
+This script **enables disk encryption**.
+Use only if you understand the implications.
 
 ---
 
