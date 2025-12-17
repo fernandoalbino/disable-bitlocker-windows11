@@ -1,162 +1,40 @@
-# BitLocker Control (Unified) – CLI/TUI + GUI (Windows 10 / 11)
+# BitLocker Control – Disable & Enable (Windows 10 / 11)
 
-This repository provides **explicit and reversible control** over **BitLocker / Device Encryption**, designed for both **virtual machines (migration-safe)** and **physical PCs**.
+This repository provides **two complementary PowerShell scripts** to explicitly **disable** or **enable** BitLocker / Device Encryption.
 
-It includes:
-- **Unified CLI/TUI script** (interactive terminal menu + automation mode)
-- **Real GUI (WinForms)** in a pragmatic “Titus-style” control panel
-- **Automatic system drive detection**
-- **File-based logging**
-- **Safety confirmations**
-- **Automatic Recovery Key export when enabling BitLocker**
+It is suitable for:
+- Windows 10 and Windows 11
+- Physical PCs
+- Virtual Machines (any hypervisor)
 
 TPM **can remain enabled**, keeping Windows 11 fully compliant.
 
 ---
 
-## Files
+## Scripts overview
 
-- `bitlocker-control.ps1`  
-  Unified script with:
-  - Interactive menu (colors + ASCII icons)
-  - CLI automation mode (`-Mode`)
-  - Logging and confirmations
-
-- `bitlocker-control-gui.ps1`  
-  Real WinForms GUI with:
-  - Enable / Disable / Test / Status buttons
-  - Embedded log console
-  - Background execution (non-blocking UI)
+| Script | Purpose |
+|------|--------|
+| `disable-bitlocker-windows11.ps1` | Permanently disables BitLocker and Device Encryption |
+| `enable-bitlocker-windows11.ps1` | Restores BitLocker and enables disk encryption |
 
 ---
 
-## Requirements
+## ENABLE – BitLocker with automatic Recovery Key export
 
-- Windows 10 or Windows 11
-- PowerShell
-- Must be run as **Administrator**
-- `manage-bde` available (default on Windows)
+### What happens when you enable BitLocker
 
----
+When the enable script is executed:
 
-## Run without downloading (recommended)
-
-### CLI/TUI (interactive menu) – one-liner
-
-Run **PowerShell as Administrator**:
-
-```powershell
-irm https://raw.githubusercontent.com/fernandoalbino/bitlocker-control/main/bitlocker-control.ps1 | iex
-```
-
-### GUI (WinForms) – one-liner
-
-Run **PowerShell as Administrator**:
-
-```powershell
-irm https://raw.githubusercontent.com/fernandoalbino/bitlocker-control/main/bitlocker-control-gui.ps1 | iex
-```
-
-> Note: these one-liners execute the scripts directly in memory (no files written to disk).
-
-### If your environment blocks script execution
-
-If you get an ExecutionPolicy-related error, use a temporary bypass in the current session:
-
-```powershell
-Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
-irm https://raw.githubusercontent.com/fernandoalbino/bitlocker-control/main/bitlocker-control.ps1 | iex
-```
-
----
-
-## Quick start – local CLI / TUI
-
-Open **PowerShell as Administrator** and run:
-
-```powershell
-.\bitlocker-control.ps1
-```
-
-This opens the interactive terminal menu.
-
-### Automation mode (no menu)
-
-```powershell
-.\bitlocker-control.ps1 -Mode status
-.\bitlocker-control.ps1 -Mode enable
-.\bitlocker-control.ps1 -Mode disable
-.\bitlocker-control.ps1 -Mode test
-```
-
-### Force mode (skip confirmations)
-
-For automation / CI / remote execution:
-
-```powershell
-.\bitlocker-control.ps1 -Mode disable -Force
-```
-
----
-
-## GUI usage (local WinForms)
-
-Run **PowerShell as Administrator**:
-
-```powershell
-.\bitlocker-control-gui.ps1
-```
-
-The GUI provides:
-- **Enable (Export Key)**
-- **Disable (Prevent Auto-Encryption)**
-- **Test (Enable → Disable)**
-- **Status**
-- **Open Logs**
-
-All actions run asynchronously and write both to the GUI console and log files.
-
----
-
-## Automatic system drive detection
-
-The scripts automatically detect the OS drive using:
-
-1. `Win32_OperatingSystem.SystemDrive` (preferred)
-2. `$env:SystemDrive`
-3. Fallback to `C:`
-
-No manual drive selection is required.
-
----
-
-## Logging
-
-Each execution generates a dedicated log file:
-
-```
-C:\ProgramData\BitLocker-Control\logs\
-```
-
-Examples:
-- `bitlocker-control-YYYY-MM-DD_HH-MM-SS.log`
-- `bitlocker-control-gui-YYYY-MM-DD_HH-MM-SS.log`
-
----
-
-## Recovery Key handling
-
-### What happens when enabling BitLocker
-
-When **Enable** is executed:
-
-- BitLocker is enabled on the system drive
+- BitLocker is activated on drive `C:`
 - Encryption starts **in background**
-- A **new Recovery Key** is generated
+- A **new Recovery Key is generated**
 - The Recovery Key is **automatically exported to disk**
 - TPM is used automatically when available
 
-### Automatic export location
+### Automatic Recovery Key export
+
+For safety and auditability, the script automatically saves the recovery key to:
 
 ```
 C:\ProgramData\BitLocker-Recovery\recovery-key-YYYY-MM-DD_HH-MM-SS.txt
@@ -167,63 +45,75 @@ This file contains:
 - Key ID (GUID)
 - Numerical Recovery Password
 
-### Best practices
+⚠️ **Important**:
+- Copy this file to a secure location
+- Do NOT rely solely on the VM disk
+- Treat this file as a sensitive secret
 
-- Treat the recovery key file as a **sensitive secret**
-- Copy it to a secure external location (vault / password manager)
-- In VMs, **do not rely solely on the VM disk**
+### Quick run
 
----
-
-## Safe testing workflow (VMs)
-
-If you want to test without risking lockout:
-
-- Use **Test (Enable → Disable)**
-- **Do NOT reboot** between enable and disable
-
-CLI example:
+Run **PowerShell as Administrator**:
 
 ```powershell
-.\bitlocker-control.ps1 -Mode test
+irm https://raw.githubusercontent.com/fernandoalbino/enable-bitlocker-windows11/main/enable-bitlocker-windows11.ps1 | iex
 ```
-
-This validates the full workflow without leaving the VM encrypted.
 
 ---
 
-## Status verification
+## DISABLE – BitLocker / Device Encryption
 
-At any time:
+### What the disable script does
+
+✔ Turns off active disk encryption  
+✔ Removes all BitLocker protectors  
+✔ Blocks automatic Device Encryption  
+✔ Prevents reactivation after hardware changes  
+
+### Quick run
+
+```powershell
+irm https://raw.githubusercontent.com/fernandoalbino/disable-bitlocker-windows11/main/disable-bitlocker-windows11.ps1 | iex
+```
+
+---
+
+## Verification
+
+Check BitLocker status at any time:
 
 ```powershell
 manage-bde -status
 ```
 
-Expected states:
+---
 
-- **Disabled**
-  - Protection Status: `Off`
-  - Encryption returning to `0%`
+## Test-safe workflow (recommended)
 
-- **Enabled**
-  - Protection Status: `On`
-  - Encryption progressing to `100%`
+For lab or VM testing:
+
+```powershell
+# Enable (generates + exports key)
+enable-bitlocker-windows11.ps1
+
+# Disable immediately (no reboot)
+disable-bitlocker-windows11.ps1
+```
+
+No system lockout will occur if no reboot happens between steps.
 
 ---
 
 ## Security considerations
 
-- **Enable** provides data-at-rest protection (recommended for laptops and production systems)
-- **Disable** removes data-at-rest protection (appropriate for labs, test VMs, and environments where encryption interferes with operations)
-
-If you require regulatory compliance or strong security guarantees, **do not use the disable functionality**.
+- Enabling BitLocker protects data at rest
+- Disabling BitLocker removes that protection
+- Always store Recovery Keys securely
 
 ---
 
 ## Disclaimer
 
-This software is provided **as is**, without warranty of any kind.
+This software is provided "as is", without warranty of any kind.
 Use at your own risk.
 
 ---
