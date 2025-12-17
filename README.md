@@ -1,124 +1,178 @@
-# BitLocker Control – Disable & Enable (Windows 10 / 11)
+# BitLocker Control (Unified) – CLI/TUI + GUI (Windows 10 / 11)
 
-This repository provides **two complementary PowerShell scripts** to explicitly **disable** or **enable** BitLocker / Device Encryption.
+Este repositório entrega **controle explícito** do BitLocker / Device Encryption com foco em **VMs (migração)** e também em **PC físico**.
 
-It is suitable for:
-- Windows 10 and Windows 11
-- Physical PCs
-- Virtual Machines (any hypervisor)
+Inclui:
+- **Script unificado CLI/TUI** (menu interativo no terminal)
+- **GUI real (WinForms)** no estilo “painel pragmático”
+- **Detecção automática do drive do sistema**
+- **Logs em arquivo**
+- **Confirmações de segurança**
+- **Export automático da Recovery Key** ao habilitar
 
-TPM **can remain enabled**, keeping Windows 11 fully compliant.
+## Arquivos
+
+- `bitlocker-control.ps1`  
+  CLI/TUI (menu no terminal) + modo automação por parâmetro (`-Mode`).
+
+- `bitlocker-control-gui.ps1`  
+  GUI WinForms (botões Enable/Disable/Test/Status + console/log).
+
+## Requisitos
+
+- Windows 10 ou Windows 11
+- PowerShell
+- Executar como **Administrador**
+- `manage-bde` disponível (Windows)
+
+> TPM pode permanecer habilitado (Windows 11 compatível).
 
 ---
 
-## Scripts overview
+## Uso rápido (CLI/TUI)
 
-| Script | Purpose |
-|------|--------|
-| `disable-bitlocker-windows11.ps1` | Permanently disables BitLocker and Device Encryption |
-| `enable-bitlocker-windows11.ps1` | Restores BitLocker and enables disk encryption |
-
----
-
-## DISABLE – BitLocker / Device Encryption
-
-### What the disable script does
-
-✔ Turns off active disk encryption  
-✔ Removes all BitLocker protectors  
-✔ Blocks automatic Device Encryption  
-✔ Prevents reactivation after hardware changes  
-
-### Quick run
+Abra **PowerShell como Administrador** e rode:
 
 ```powershell
-irm https://raw.githubusercontent.com/fernandoalbino/disable-bitlocker-windows11/main/disable-bitlocker-windows11.ps1 | iex
+.\bitlocker-control.ps1
+```
+
+Isso abre o menu interativo com cores e ícones ASCII.
+
+### Modo automação (sem menu)
+
+```powershell
+.\bitlocker-control.ps1 -Mode status
+.\bitlocker-control.ps1 -Mode enable
+.\bitlocker-control.ps1 -Mode disable
+.\bitlocker-control.ps1 -Mode test
+```
+
+### Forçar sem confirmação
+
+Para automação (CI/remote), você pode suprimir confirmações:
+
+```powershell
+.\bitlocker-control.ps1 -Mode disable -Force
 ```
 
 ---
 
-## Verification
+## Uso (GUI WinForms)
 
-Check BitLocker status at any time:
+Abra **PowerShell como Administrador** e execute:
 
 ```powershell
-manage-bde -status
+.\bitlocker-control-gui.ps1
 ```
+
+A interface oferece:
+- **Enable (Export Key)**
+- **Disable (Prevent Auto)**
+- **Test (Enable -> Disable)**
+- **Status**
+- **Open Logs**
+
+A GUI executa as ações em background e escreve no console interno e no log em arquivo.
 
 ---
 
-## ENABLE – BitLocker with automatic Recovery Key export
+## Drive do sistema (detecção automática)
 
-### What happens when you enable BitLocker
+Os scripts detectam automaticamente o drive do sistema via:
 
-When the enable script is executed:
+- `Win32_OperatingSystem.SystemDrive` (preferencial)
+- fallback: `$env:SystemDrive`
+- fallback final: `C:`
 
-- BitLocker is activated on drive `C:`
-- Encryption starts **in background**
-- A **new Recovery Key is generated**
-- The Recovery Key is **automatically exported to disk**
-- TPM is used automatically when available
+Você não precisa informar manualmente o drive.
 
-### Automatic Recovery Key export
+---
 
-For safety and auditability, the script automatically saves the recovery key to:
+## Logs (arquivo)
+
+Cada execução gera um log em:
+
+```
+C:\ProgramData\BitLocker-Control\logs\
+```
+
+Exemplos:
+- `bitlocker-control-YYYY-MM-DD_HH-MM-SS.log`
+- `bitlocker-control-gui-YYYY-MM-DD_HH-MM-SS.log`
+
+---
+
+## Recovery Key (chave de recuperação)
+
+### O que acontece ao habilitar
+
+Ao rodar **Enable**, o Windows gera uma **NOVA Recovery Key** (numérica).
+
+### Export automático
+
+O script exporta automaticamente a chave para:
 
 ```
 C:\ProgramData\BitLocker-Recovery\recovery-key-YYYY-MM-DD_HH-MM-SS.txt
 ```
 
-This file contains:
-- Volume information
+Esse arquivo contém:
+- Informações do volume
 - Key ID (GUID)
-- Numerical Recovery Password
+- Recovery Password (numérica)
 
-⚠️ **Important**:
-- Copy this file to a secure location
-- Do NOT rely solely on the VM disk
-- Treat this file as a sensitive secret
+### Boas práticas
 
-### Quick run
+- Trate o arquivo como **segredo sensível**
+- Copie para um local seguro (vault / password manager / storage fora da VM)
+- Em VMs, **não confie apenas** no disco da VM
 
-Run **PowerShell as Administrator**:
+---
+
+## Fluxo de teste seguro (VM)
+
+Se você quer apenas validar e não “travar” a VM:
+
+- Use **Test (Enable -> Disable)**
+- **Não reinicie** entre enable e disable
+
+No CLI:
 
 ```powershell
-irm https://raw.githubusercontent.com/fernandoalbino/enable-bitlocker-windows11/main/enable-bitlocker-windows11.ps1 | iex
+.\bitlocker-control.ps1 -Mode test
 ```
 
 ---
 
+## Verificação do estado
 
-## Test-safe workflow (recommended)
-
-For lab or VM testing:
+Em qualquer momento:
 
 ```powershell
-# Enable (generates + exports key)
-enable-bitlocker-windows11.ps1
-
-# Disable immediately (no reboot)
-disable-bitlocker-windows11.ps1
+manage-bde -status
 ```
 
-No system lockout will occur if no reboot happens between steps.
+Estados esperados:
+
+- **Disabled**: `Protection Status: Off` e criptografia indo para `0%`
+- **Enabled**: `Protection Status: On` e criptografia progredindo para `100%`
 
 ---
 
-## Security considerations
+## Considerações de segurança
 
-- Enabling BitLocker protects data at rest
-- Disabling BitLocker removes that protection
-- Always store Recovery Keys securely
+- **Enable** aumenta proteção de dados em repouso (recomendado para notebooks e produção).
+- **Disable** remove proteção de dados em repouso (adequado para laboratório/VMs e ambientes onde isso atrapalha operação).
 
----
-
-## Disclaimer
-
-This software is provided "as is", without warranty of any kind.
-Use at your own risk.
+Se você precisa de compliance/segurança formal, não utilize o modo disable.
 
 ---
 
-## License
+## Aviso
+
+Uso por sua conta e risco. Nenhuma garantia é oferecida.
+
+## Licença
 
 MIT
