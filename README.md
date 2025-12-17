@@ -20,6 +20,33 @@ TPM **can remain enabled**, keeping Windows 11 fully compliant.
 
 ---
 
+## DISABLE – BitLocker / Device Encryption
+
+### What the disable script does
+
+✔ Turns off active disk encryption  
+✔ Removes all BitLocker protectors  
+✔ Blocks automatic Device Encryption  
+✔ Prevents reactivation after hardware changes  
+
+### Quick run
+
+```powershell
+irm https://raw.githubusercontent.com/fernandoalbino/disable-bitlocker-windows11/main/disable-bitlocker-windows11.ps1 | iex
+```
+
+---
+
+## Verification
+
+Check BitLocker status at any time:
+
+```powershell
+manage-bde -status
+```
+
+---
+
 ## ENABLE – BitLocker with automatic Recovery Key export
 
 ### What happens when you enable BitLocker
@@ -60,32 +87,6 @@ irm https://raw.githubusercontent.com/fernandoalbino/enable-bitlocker-windows11/
 
 ---
 
-## DISABLE – BitLocker / Device Encryption
-
-### What the disable script does
-
-✔ Turns off active disk encryption  
-✔ Removes all BitLocker protectors  
-✔ Blocks automatic Device Encryption  
-✔ Prevents reactivation after hardware changes  
-
-### Quick run
-
-```powershell
-irm https://raw.githubusercontent.com/fernandoalbino/disable-bitlocker-windows11/main/disable-bitlocker-windows11.ps1 | iex
-```
-
----
-
-## Verification
-
-Check BitLocker status at any time:
-
-```powershell
-manage-bde -status
-```
-
----
 
 ## Test-safe workflow (recommended)
 
