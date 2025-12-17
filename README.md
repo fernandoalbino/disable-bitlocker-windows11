@@ -8,6 +8,7 @@ This repository provides a **safe, reproducible and permanent** way to disable:
 
 It is designed for:
 - Windows 11 (Home / Pro / Enterprise)
+- Windows 10
 - Physical PCs
 - Virtual Machines (any hypervisor)
 
@@ -17,50 +18,65 @@ TPM **can remain enabled**, keeping Windows 11 fully compliant.
 
 ## Why this exists
 
-Windows 11 may automatically enable disk encryption when it detects:
+Windows may automatically enable disk encryption when it detects:
 - TPM
 - Secure Boot
 - Modern hardware or VM migration
 
-This can cause:
-- Recovery key prompts
+This behavior can cause:
+- Unexpected recovery key prompts
 - Boot interruptions
 - Problems after hardware changes or VM migrations
+- Operational issues in labs, homelabs and enterprise environments
 
-This script **permanently disables** that behavior.
+This script **permanently disables** that behavior while keeping the system stable.
 
 ---
 
 ## What the script does
 
-✔ Turns off active encryption (non-destructive)  
+✔ Turns off active disk encryption (non-destructive)  
 ✔ Removes all BitLocker protectors  
 ✔ Blocks automatic Device Encryption via registry  
-✔ Prevents key regeneration on hardware change  
+✔ Prevents key regeneration after hardware changes  
 ✔ Disables BitLocker-related services  
-✔ Removes BitLocker Windows feature if available  
-✔ Works on **PCs and VMs**  
+✔ Removes the BitLocker Windows feature (when available)  
+✔ Works on **physical PCs and virtual machines**  
 
 ---
 
-## What it does NOT do
+## What the script does NOT do
 
-✖ Does NOT remove TPM  
+✖ Does NOT remove or disable TPM  
 ✖ Does NOT break Windows 11 requirements  
 ✖ Does NOT delete data  
-✖ Does NOT affect Windows updates  
+✖ Does NOT affect Windows Update  
+✖ Does NOT weaken system integrity beyond disabling disk encryption  
 
 ---
 
 ## Requirements
 
-- Windows 10 or 11
+- Windows 10 or Windows 11
 - PowerShell
 - Administrator privileges
 
 ---
 
-## Usage
+## Quick run (recommended)
+
+Run **PowerShell as Administrator** and execute:
+
+```powershell
+irm https://raw.githubusercontent.com/fernandoalbino/disable-bitlocker-windows11/main/disable-bitlocker-windows11.ps1 | iex
+```
+
+> The script is executed directly in memory.  
+> No files are written to disk.
+
+---
+
+## Manual usage
 
 1. Download the script:
    ```powershell
@@ -85,31 +101,45 @@ This script **permanently disables** that behavior.
 
 ## Verification
 
-After reboot:
+After reboot, confirm BitLocker is fully disabled:
 
 ```powershell
 manage-bde -status
 ```
 
-Expected result:
+Expected output:
 - Percentage Encrypted: `0%`
 - Protection Status: `Off`
 - No key protectors present
 
 ---
 
-## Notes for Windows 11
+## Windows 11 notes
 
 - TPM **can remain enabled**
 - Secure Boot is optional
-- Works on Windows Home (Device Encryption) and Pro/Enterprise
+- Works on Windows Home (Device Encryption) and Pro/Enterprise editions
+- Safe for VM migration scenarios
+
+---
+
+## Security considerations
+
+This project intentionally disables disk encryption.
+
+If your environment requires:
+- Data-at-rest protection
+- Regulatory compliance
+- Lost-device threat mitigation
+
+**Do not use this script.**
 
 ---
 
 ## Disclaimer
 
-This script disables disk encryption.
-If you require encryption for compliance or security reasons, do not use it.
+This software is provided "as is", without warranty of any kind.
+Use at your own risk.
 
 ---
 
